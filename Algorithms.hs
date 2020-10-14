@@ -11,7 +11,8 @@ TODO
 module Algorithms
 (
     bubbleSort,
-    insertionSort
+    insertionSort,
+    mergeSort
 )
 
 where
@@ -61,7 +62,7 @@ split (x:xs) = (fst $ half x) : (snd $ half x) : (split xs)
 
 recSplit ::(Num a) => [[a]] -> [[a]]
 recSplit xss 
-    | ((length (head xss )) > 1) = recSplit (split xss)
+    | ((length (head xss )) > 0) = recSplit (split xss)
     | otherwise = xss
 
 --test data [[1,8], [2, 7], [32, 6], [99, 5], [23,43], [12,567], [2,45], [23,24]]
@@ -75,13 +76,14 @@ mergeSort' xss
     | ((length xss) > 1) = mergeSort' (recMerge xss)
     | otherwise = xss
 
---test data [1,7,3,5,6,9,3,3,2,5,23]
+--test data [1,2,6,8,3,5,6,98,0,4,3,7,9] odd length
+
+--test data [1,7,3,5,6,9,3,3,2,5,23] even length
+
 mergeSort :: (Ord a, Num a) => [a] -> [a]
 mergeSort xs = (mergeSort' (recSplit [xs])) !! 0
 
 
-
-  
 
 
 
