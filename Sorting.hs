@@ -8,10 +8,8 @@ TODO
 -Graphs:Nodes, BFS, DFS, A*, Djikstra, Kruskal, Prims (use custom data type)
 -Trees: basic operations, linear, binary, AVL, red,black, B (use custom data type)
 
-
--probably want to measure efficiency, runtime
+-probably want to measure efficiency, runtime, other information
 -display output at each stage of sorting
-
 
 -}
 module Sorting
@@ -24,8 +22,6 @@ module Sorting
 )
 
 where
-
-
 
 deleteFromList :: (Eq a) => a -> [a] -> [a]
 deleteFromList _ [] = []
