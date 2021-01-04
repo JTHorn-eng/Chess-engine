@@ -1,2 +1,2 @@
-# Algorithms
-Implementation of some essential algorithms used for sorting, graph traversal and other useful functions written in Haskell
+# Chess
+Implementation of chess with Haskell and Gloss, a Haskell graphics package.
