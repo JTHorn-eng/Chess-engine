@@ -1,2 +1,2 @@
-# Chess
-Implementation of chess with Haskell and Gloss, a Haskell graphics package.
+# ChessEngine
+Implementation of a chess engine in Haskell.
