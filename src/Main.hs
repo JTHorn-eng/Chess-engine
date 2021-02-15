@@ -1,6 +1,13 @@
 module Main where
 
+{- TODO
 
+    -Implement display
+    -Write heuristics for minimax
+    -Write minimax
+    -Optimisations
+    -Testing
+-}
 
 boardStatus :: String
 boardStatus = "======="
