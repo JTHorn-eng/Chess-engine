@@ -9,14 +9,14 @@ version:             0.1.0.0
 -- bug-reports:
 license:             PublicDomain
 author:              JTHorn-eng
-maintainer:          jamesh2173@gmail.com
+maintainer:          james@tomhorns.com
 -- category:
 build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 executable Chess
   main-is:             Main.hs
-  -- other-modules:
+  other-modules:       Board
   -- other-extensions:
   build-depends:       base >=4.12 && <4.13
                       ,gi-gtk
