@@ -1,6 +1,6 @@
-import qualified Toolkit as Tool
 
 module Board where
+import qualified Toolkit as Tool
 
 
 data Piece = Blank | Pawn | Knight | Queen | King | Bishop | Rook deriving (Show, Eq)
@@ -34,7 +34,7 @@ initSingleton = take 128 $ repeat '@'
 
 display :: Board -> String -> String
 display [] input = show input
-display (x:xs) input = display xs (input !! (8 * Tool.charToInt (row x)) + (col x))
+display (x:xs) input = display xs (Tool.replaceAtIndex piece input (8 * Tool.charToInt (row x)) + (col x))
     where 
         piece = pieceType ++ [(if (sid x)=='N' then " " else sid x]
         pieceType = 
