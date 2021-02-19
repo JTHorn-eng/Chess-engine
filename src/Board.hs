@@ -45,7 +45,9 @@ display (x:xs) input = display xs (Tool.replaceAtIndex piece input (8 * Tool.cha
             | (typ x == Rook) = "R"
             | (typ x == Queen) = "Q"
             | (typ x == King) = "K"
-   
+
+
+captureState
 
 
 
