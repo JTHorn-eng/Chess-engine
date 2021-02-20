@@ -11,7 +11,7 @@ type States = [B.Board]
 
  -}
 generateMoves :: B.Board -> States
-generateMoves board =
+generateMoves board = 
 
 orderMoves :: States -> States
 orderMoves states = 
