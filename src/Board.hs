@@ -61,8 +61,8 @@ canMove piece board =
 colChng :: PieceInfo -> Int -> Int
 colChng piece c = Tool.intToChar ((Tool.charToInt (col piece)) + (sid piece * ))
 
-canMovePawn :: PieceInfo -> Board -> [Int] -> [Int] -> Boolean
-canMovePawn piece board rowOps colOps = upOnce
+canMove :: PieceInfo -> Board -> [Int] -> [Int] -> Boolean
+canMove piece board rowOps colOps = upOnce
     where
     upOnce = foldl (\x -> typ x == Blank) True foundPiece
     foundPiece = map changeApply pieceChange
