@@ -2,14 +2,10 @@
 module Board where
 import qualified Toolkit as Tool
 
-
 data Piece = Blank | Pawn | Knight | Queen | King | Bishop | Rook deriving (Show, Eq)
 -- row, column, score, type, side (1 - White, -1 - Black, 0 - Neutral), captured (True/False)
 data PieceInfo = PieceInfo {row :: Int, col :: Char, sco :: Int, typ :: Piece, sid :: Int, cap :: Boolean} deriving (Show, Eq)
 type Board = [PieceInfo]
-
-
-
 
 -- generate board, keep track of board status
 init :: Board
@@ -22,6 +18,12 @@ init = result where
     rooks   = [PieceInfo {row=r, col=c, sco=5, typ=Rook, sid=(if row == 1 then 1 else negate 1), cap=False} | c <- ['a', 'h'], r <- [1, 8]]
     pawns   = [PieceInfo {row=r, col=c, sco=1, typ=Pawn, sid=(if row == 2 then 1 else negate 1), cap=False} | c <- ['a'..'h'], r <- [2, 7]]
     blanks  = [PieceInfo {row=r, col=c, sco=0, typ=Blank, sid=0, cap=False} | c <- ['a'..'h'], r <- [3..6]]
+
+insertPiece :: PieceInfo -> Board -> Int -> Char -> Board
+insertPiece p bo r c = map (\pi-> if row pc == r && col pc == c then np else pi) bs
+    where
+    np = PieceInfo {row=r, col=c, sco=sco p, typ=typ p, sid=sid p, cap=cap p}
+    pc = (search bo r c)
 
 -- board, row, column, outputs piece
 search :: Board -> Int -> Char -> PieceInfo
@@ -59,17 +61,34 @@ canMove piece board =
       | (typ x == King) = "K"
 
 colChng :: PieceInfo -> Int -> Int
-colChng piece c = Tool.intToChar ((Tool.charToInt (col piece)) + (sid piece * ))
+colChng piece c = Tool.intToChar ((Tool.charToInt (col piece)) + (sid piece * c))
 
-canMove :: PieceInfo -> Board -> [Int] -> [Int] -> Boolean
-canMove piece board rowOps colOps = upOnce
+
+--for a given piece, find potential states of movement only
+
+move :: PieceInfo -> Board -> [Int] -> [Int] -> States
+move piece board rowOps colOps = states
     where
-    upOnce = foldl (\x -> typ x == Blank) True foundPiece
-    foundPiece = map changeApply pieceChange
+    states = map (\p -> insertPiece p board (row p) (col p)) filteredPieces
+    filteredPieces = filter (\p -> typ p == Blank) foundPieces
+    foundPieces = map changeApply pieceChange
     changeApply = (\(r,c) -> search board (row piece + r) (colChng piece c))
     pieceChange = zip rowOps colOps
+
+
+--for a given place, find potential states of capture only
     
-    
+capture :: PieceInfo -> Board -> [Int] -> [Int] -> States
+capture piece board rowOps colOps = map (\p -> insertPiece p board (row p) (col p)) foundPieces
+    where
+    foundPieces = map changeApply pieceChange
+    changeApply = (\(r,c) -> search board (row piece + r) (colChng piece c))
+    pieceChange = zip rowOps colOps
+
+
+
+
+
 
 
 
