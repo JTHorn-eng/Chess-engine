@@ -50,13 +50,13 @@ display (x:xs) input = display xs (Tool.replaceAtIndex piece input (8 * Tool.cha
             | (typ x == King) = "K"
 
 
-canMove :: PieceInfo -> Board -> Boolean
-canMove piece board =
-      | (typ x == Blank) = False
-      | (typ x == Pawn) = canMovePawn piece board
-      | (typ x == Knight) = "H"
-      | (typ x == Pawn) = "P"
-      | (typ x == Rook) = "R"
+checkMove :: PieceInfo -> Board -> States 
+checkMove piece board =
+      | (typ x == Blank) = move piece board [] [] 
+      | (typ x == Pawn) = move piece board [1, 2] [0, 0]
+      | (typ x == Knight) = move piece board [1,2,1,2,negate 1, negate 2, negate 1, negate 2] [negate 2, negate 1, 2, 1, negate 2, negate 1, 2, 1]
+      | (typ x == Bishop) = move piece board (take 16 repeat [1..8]) ++ (take 16 repeat (map negate [1..8])) (take 32 repeat ([1..8] ++ map negate [1..8])) 
+      | (typ x == Rook) = move piece board ((take 16 repeat [1..8]) ++ take 16 repeat (map negate [1..8])) (take 32 repeat ([1..8] ++ (map negate [1..8])))
       | (typ x == Queen) = "Q"
       | (typ x == King) = "K"
 
@@ -67,6 +67,7 @@ colChng piece c = Tool.intToChar ((Tool.charToInt (col piece)) + (sid piece * c)
 --for a given piece, find potential states of movement only
 
 move :: PieceInfo -> Board -> [Int] -> [Int] -> States
+move piece board [] [] = [board]
 move piece board rowOps colOps = states
     where
     states = map (\p -> insertPiece p board (row p) (col p)) filteredPieces
@@ -77,6 +78,7 @@ move piece board rowOps colOps = states
 
 
 --for a given place, find potential states of capture only
+--(no blank check)
     
 capture :: PieceInfo -> Board -> [Int] -> [Int] -> States
 capture piece board rowOps colOps = map (\p -> insertPiece p board (row p) (col p)) foundPieces
