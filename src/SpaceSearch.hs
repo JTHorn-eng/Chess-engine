@@ -9,12 +9,16 @@ type States = [B.Board]
     iterate through pieces, find possible moves 
     and return these as a list of states ?
 
+-}
+
+{-
+ - color: Black -1, White 1
+ -
+ -
  -}
 generateMoves :: B.Board -> States
-generateMoves board = 
-
-orderMoves :: States -> States
-orderMoves states = 
+generateMoves board = foldl (\p -> B.checkMove p board) [] board  
+ 
 
 
 newAlpha :: Int -> Int -> Int
@@ -33,15 +37,18 @@ negamaxRoutine val childNodes a b depth color = newVal
 --node, depth, alpha, beta, color
 negamax :: B.Board -> Int -> Int -> Int -> Int -> Int
 negamax node depth a b color
-    | depth == 0 = color * findHeuristic node
+    | depth == 0 = color * findHeuristic node childNodes color
     | otherwise = negamaxRoutine minInt childNodes (newAlpha a newOptVal) b depth color
     where
     newOptVal = negamaxRoutine minInt childNodes a b depth color
-    childNodes = orderMoves $ generateMoves node
+    childNodes = generateMoves node
     minInt = minBound :: Int
     
 
-
-
+findHeuristic ::  States -> Int -> Int
+findHeuristic s c 
+	| (c == negate 1 ) = minimum $ map boardScore s
+	| otherwise = maximum $ map boardScore s
+	
 
 

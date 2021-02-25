@@ -88,6 +88,19 @@ capture piece board rowOps colOps = map (\p -> insertPiece p board (row p) (col 
     pieceChange = zip rowOps colOps
 
 
+{- 
+ - Heuristics for negamax
+ - boardScore - look at increase in score from current state
+ - -}
+
+boardScore :: Board -> Int
+boardScore board = foldl (+) 0 (map (\x -> sco x)) board
+ 
+
+
+	
+
+
 
 
 
