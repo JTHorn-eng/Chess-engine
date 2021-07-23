@@ -1,26 +1,13 @@
 module SpaceSearch where
 
-import qualified Board as B
-
-
-type States = [B.Board]
+import Board
 
 {-
-    iterate through pieces, find possible moves 
-    and return these as a list of states ?
+type States = [Board]
 
--}
-
-{-
- - color: Black -1, White 1
- -
- -
- -}
-generateMoves :: B.Board -> States
+generateMoves :: Board -> States
 generateMoves board = foldl (\p -> B.checkMove p board) [] board  
  
-
-
 newAlpha :: Int -> Int -> Int
 newAlpha a newVal = maximum (a, newVal)
 
@@ -35,7 +22,7 @@ negamaxRoutine val childNodes a b depth color = newVal
     
 
 --node, depth, alpha, beta, color
-negamax :: B.Board -> Int -> Int -> Int -> Int -> Int
+negamax :: Board -> Int -> Int -> Int -> Int -> Int
 negamax node depth a b color
     | depth == 0 = color * findHeuristic node childNodes color
     | otherwise = negamaxRoutine minInt childNodes (newAlpha a newOptVal) b depth color
@@ -43,12 +30,16 @@ negamax node depth a b color
     newOptVal = negamaxRoutine minInt childNodes a b depth color
     childNodes = generateMoves node
     minInt = minBound :: Int
-    
+-}
 
-findHeuristic ::  States -> Int -> Int
-findHeuristic s c 
-	| (c == negate 1 ) = minimum $ map boardScore s
-	| otherwise = maximum $ map boardScore s
-	
-
-
+--node, depth, alpha, beta, color
+negamax :: Board -> Int -> Int -> Int -> Int -> Int
+negamax node depth a b color
+    | (depth == 0) = color * (snd foundNode)
+    | otherwise = negamax (fst foundNode) (depth - 1) (negate b) (negate a) (negate color)
+    where
+    minInt = minBound :: Int
+    foundNode = (Board.findHeuristic node color)
+   
+beginSearch :: Int
+beginSearch = negamax (Board.init) (1) (negate 100000) (10000000) (negate 1)

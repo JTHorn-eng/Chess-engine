@@ -18,6 +18,18 @@ replaceAtIndex word override atIndex =
     let 
     start = take atIndex override
     end   = take (length override - (atIndex + 2)) (reverse override)
-    in start ++ word ++ end
+    in start ++ word ++ (reverse end)
 
-        
+insertAtIndex :: String -> String -> Int -> String
+insertAtIndex word override atIndex =
+    let
+    start = take atIndex override
+    end   = take (length override - (atIndex)) (reverse override)
+    in start ++ word ++ (reverse end)     
+
+removeFromList ::(Eq a) => [a] -> a -> [a]
+removeFromList [] _ = []
+removeFromList (x:xs) elem 
+    | (x == elem) = [] ++ removeFromList xs elem
+    | otherwise = [x] ++ removeFromList xs elem
+  

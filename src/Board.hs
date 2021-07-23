@@ -1,121 +1,220 @@
 
 module Board where
 import qualified Toolkit as Tool
+import qualified Data.Char as Char
+import qualified Debug.Trace as Trace
 
-data Piece = Blank | Pawn | Knight | Queen | King | Bishop | Rook deriving (Show, Eq)
+data Piece = Empty | Blank | Pawn | Knight | Queen | King | Bishop | Rook deriving (Show, Eq)
 -- row, column, score, type, side (1 - White, -1 - Black, 0 - Neutral), captured (True/False)
-data PieceInfo = PieceInfo {row :: Int, col :: Char, sco :: Int, typ :: Piece, sid :: Int, cap :: Boolean} deriving (Show, Eq)
+data PieceInfo = PieceInfo {row :: Int, col :: Char, sco :: Int, typ :: Piece, sid :: Int, cap :: Bool} deriving (Show, Eq)
+
 type Board = [PieceInfo]
+type States = [Board]
+type Coords = [(Int, Int)]
+
+
+--DEBUGGING
+--PieceInfo {row=1, col='c', sco=3, typ=Knight, sid=1, cap=False} white knight piece
+
+--PieceInfo {row=1, col='e', sco=7, typ=Queen, sid=1, cap=False} white queen piece
+--PieceInfo {row=1, col='d', sco=10000000, typ=King, sid=1, cap=False} white king piece
+--PieceInfo {row=0, col='a', sco=0, typ=Empty, sid=0, cap=False}  empty piece
+--PieceInfo {row=4, col='b', sco=0, typ=Blank, sid=0, cap=False}  blank piece
+--PieceInfo {row=7, col='c', sco=1, typ=Pawn, sid=negate 1, cap=False}  black pawn piece
+--PieceInfo {row=2, col='c', sco=1, typ=Pawn, sid=1, cap=False}  white pawn piece
+--PieceInfo {row = 3, col = 'g', sco = 0, typ = Blank, sid = 0, cap = False} a blank square (isPath detection)
+
 
 -- generate board, keep track of board status
 init :: Board
 init = result where
     result  = pawns ++ rooks ++ queens ++ kings ++ bishops ++ knights ++ blanks
-    knights = [PieceInfo {row=r, col=c, sco=3, typ=Knight, sid=(if row == 1 then 1 else negate 1), cap=False} | c <- ['b', 'g'], r <- [1, 8]]
-    bishops = [PieceInfo {row=r, col=c, sco=3, typ=Bishop, sid=(if row == 1 then 1 else negate 1), cap=False} | c <- ['c', 'f'], r <- [1, 8]]
-    kings   = [PieceInfo {row=(if c == 'd' then 8 else 1), col=c, sco=10000000, typ=King, sid=(if col == 'd' then negate 1 else 1), cap=False} | c <- ['d', 'e']]
-    queens  = [PieceInfo {row=(if col == 'd' then 1 else 8), col=c, sco=7, typ=Queen, side=(if col == 'd' then 1 else negate 1), cap=False} | c <- ['d', 'e']]
-    rooks   = [PieceInfo {row=r, col=c, sco=5, typ=Rook, sid=(if row == 1 then 1 else negate 1), cap=False} | c <- ['a', 'h'], r <- [1, 8]]
-    pawns   = [PieceInfo {row=r, col=c, sco=1, typ=Pawn, sid=(if row == 2 then 1 else negate 1), cap=False} | c <- ['a'..'h'], r <- [2, 7]]
+    knights = [PieceInfo {row=r, col=c, sco=3, typ=Knight, sid=(if r == 1 then 1 else negate 1), cap=False} | c <- ['b', 'g'], r <- [1, 8]]
+    bishops = [PieceInfo {row=r, col=c, sco=3, typ=Bishop, sid=(if r == 1 then 1 else negate 1), cap=False} | c <- ['c', 'f'], r <- [1, 8]]
+    kings   = [PieceInfo {row=(if c=='d' then 8 else 1), col=c, sco=10000000, typ=King, sid=(if c=='d' then (negate 1) else 1), cap=False} | c <- ['d', 'e']]
+    queens  = [PieceInfo {row=(if c=='d' then 1 else 8), col=c, sco=7, typ=Queen, sid=(if c== 'd' then 1 else negate 1), cap=False} | c <- ['d', 'e']]
+    rooks   = [PieceInfo {row=r, col=c, sco=5, typ=Rook, sid=(if r== 1 then 1 else negate 1), cap=False} | c <- ['a', 'h'], r <- [1, 8]]
+    pawns   = [PieceInfo {row=r, col=c, sco=1, typ=Pawn, sid=(if r== 2 then 1 else negate 1), cap=False} | c <- ['a'..'h'], r <- [2, 7]]
     blanks  = [PieceInfo {row=r, col=c, sco=0, typ=Blank, sid=0, cap=False} | c <- ['a'..'h'], r <- [3..6]]
 
-insertPiece :: PieceInfo -> Board -> Int -> Char -> Board
-insertPiece p bo r c = map (\pi-> if row pc == r && col pc == c then np else pi) bs
-    where
-    np = PieceInfo {row=r, col=c, sco=sco p, typ=typ p, sid=sid p, cap=cap p}
-    pc = (search bo r c)
+boardSingleton = take 128 $ repeat '@'
+cr_limit = [0,17..128]
 
--- board, row, column, outputs piece
-search :: Board -> Int -> Char -> PieceInfo
-search [] r c = PieceInfo {row=r, col=c, sco=0, typ=Blank, sid='N', cap=False}
-search (x:xs) r c = 
-    | (r == row x) && (c == col x) = x
-    | otherwise = searchBoard xs r c
+displayBoard :: String -> [Int] -> String
+displayBoard newString [] = newString
+displayBoard newString (x:xs) = displayBoard (Tool.insertAtIndex "\n" (newString) x) xs
 
-initSingleton :: [[String]]
-initSingleton = take 128 $ repeat '@'
-
-display :: Board -> String -> String
-display [] input = show input
-display (x:xs) input = display xs (Tool.replaceAtIndex piece input (8 * Tool.charToInt (row x)) + (col x))
+genBoardString :: Board -> String -> String
+genBoardString [] board = board
+genBoardString (x:xs) board =
+    genBoardString xs newBoard
     where 
-        piece = pieceType ++ [(if (sid x)=='N' then " " else sid x]
-        pieceType = 
-            | (typ x == Blank) = "-"
-            | (typ x == Bishop) = "B"
-            | (typ x == Knight) = "H"
-            | (typ x == Pawn) = "P"
-            | (typ x == Rook) = "R"
-            | (typ x == Queen) = "Q"
-            | (typ x == King) = "K"
+        newBoard = Tool.replaceAtIndex ((getPieceString x) ++ convertSideToString (sid x)) board index
+        index = 2 * (((Tool.charToInt (col x)) ) + (row x - 1) * 8)
 
+displayStates :: States -> Int -> String
+displayStates states index = (displayBoard (genBoardString (states !! index) boardSingleton) cr_limit) 
 
-checkMove :: PieceInfo -> Board -> States 
-checkMove piece board =
-      | (typ x == Blank) = move piece board [] [] 
-      | (typ x == Pawn) = move piece board [1, 2] [0, 0]
-      | (typ x == Knight) = move piece board [1,2,1,2,negate 1, negate 2, negate 1, negate 2] [negate 2, negate 1, 2, 1, negate 2, negate 1, 2, 1]
-      | (typ x == Bishop) = move piece board (take 16 repeat [1..8]) ++ (take 16 repeat (map negate [1..8])) (take 32 repeat ([1..8] ++ map negate [1..8])) 
-      | (typ x == Rook) = move piece board ((take 16 repeat [1..8]) ++ take 16 repeat (map negate [1..8])) (take 32 repeat ([1..8] ++ (map negate [1..8])))
-      | (typ x == Queen) = "Q"
-      | (typ x == King) = "K"
-
-colChng :: PieceInfo -> Int -> Int
-colChng piece c = Tool.intToChar ((Tool.charToInt (col piece)) + (sid piece * c))
-
-
---for a given piece, find potential states of movement only
-
-move :: PieceInfo -> Board -> [Int] -> [Int] -> States
-move piece board [] [] = [board]
-move piece board rowOps colOps = states
+getPieceString :: PieceInfo -> String
+getPieceString piece 
+    | (typeP == Blank) = "_"
+    | (typeP == Pawn) = "P"
+    | (typeP == Knight) = "N"
+    | (typeP == Rook) = "R"
+    | (typeP == Bishop) = "B"
+    | (typeP == King) = "K"
+    | (typeP == Queen) = "Q"
     where
-    states = map (\p -> insertPiece p board (row p) (col p)) filteredPieces
-    filteredPieces = filter (\p -> typ p == Blank) foundPieces
-    foundPieces = map changeApply pieceChange
-    changeApply = (\(r,c) -> search board (row piece + r) (colChng piece c))
-    pieceChange = zip rowOps colOps
+        typeP = typ piece
 
+convertSideToString :: Int -> String
+convertSideToString x = if x == 1 then "W" else (if x == negate 1 then "B" else "_")
 
---for a given place, find potential states of capture only
---(no blank check)
+convertStringToSide :: Char -> Int
+convertStringToSide x = if x == 'W' then 1 else (if x == 'B' then negate 1 else 0)
+
+possibleMoves :: Piece -> Coords
+possibleMoves piece 
+    | ( piece == Pawn) = [(2,0), (1,0), (1, 1), (1, negate 1)]
+    | ( piece == Knight) = [(x,y) | x <- [negate 1, 1], y <-[negate 3, 3]] ++ [(x,y) | x <- [negate 3, 3], y <-[negate 1, 1]]
+    | ( piece == Bishop) = Tool.removeFromList ([(x,x) | x<-[negate 7..7]] ++ [(x,negate x) | x<-[negate 7..7]] ++ [(negate x, x) | x<-[negate 7..7]]) (0,0)
+    | ( piece == Rook) = Tool.removeFromList ([(x,0)|x<-[negate 7..7]] ++ [(0,y)|y<-[negate 7..7]]) (0,0)
+    | ( piece == Queen) = Tool.removeFromList ([(x,negate x) | x<-[negate 7..7]] ++ [(negate x, x) | x<-[negate 7..7]] ++ [(x,x) | x<-[negate 7..7]] ++ [(x,0)|x<-[negate 7..7]] ++ [(0,y)|y<-[negate 7..7]]) (0,0)
+    | ( piece == King) = (Tool.removeFromList [(x,y) | x<-[negate 1..1], y<-[negate 1..1]] (0,0)) 
+
+pieceToType :: String -> Piece
+pieceToType piece 
+    | (last piece == 'K') = King
+    | (last piece == 'Q') = Queen
+    | (last piece == 'B') = Bishop
+    | (last piece == 'N') = Knight
+    | (last piece == 'R') = Rook
+    | (last piece == 'P') = Pawn 
+
+findPieceInBoard :: String -> Board -> PieceInfo
+findPieceInBoard piece board = 
+ (filter (\x -> findPieceInBoardHelper piece x) board) !! 0
     
-capture :: PieceInfo -> Board -> [Int] -> [Int] -> States
-capture piece board rowOps colOps = map (\p -> insertPiece p board (row p) (col p)) foundPieces
+findPieceInBoardHelper :: String -> PieceInfo -> Bool
+findPieceInBoardHelper piece p =
+    side && pieceType
     where
-    foundPieces = map changeApply pieceChange
-    changeApply = (\(r,c) -> search board (row piece + r) (colChng piece c))
-    pieceChange = zip rowOps colOps
+        side = convertStringToSide (piece !! 0) == sid p
+        pieceType = pieceToType piece == typ p
 
+getPieceAtCoords :: Int -> Int -> Board -> PieceInfo
+getPieceAtCoords x y board
+    | (x > 0 && x <= 8 && y >= 0 && y < 8 ) = (filter (\p -> ((row p) == x) && (Tool.charToInt (col p)) == y) board) !! 0
+    | otherwise = PieceInfo{row=0, col='a',sco=0,typ=Empty,sid=0,cap=False}
 
-{- 
- - Heuristics for negamax
- - boardScore - look at increase in score from current state
- - -}
+isValidMove :: PieceInfo ->  Board -> PieceInfo -> Bool
+isValidMove piece board target
+    | (typ target == Empty) = False
+    | (typ piece == Knight) = sid piece /= sid target
+    | (typ piece == Pawn && chkPwnDisLeft ) = sid target == negate (sid piece)
+    | (typ piece == Pawn && chkPwnDisRight ) = sid target == negate (sid piece)
+    | otherwise = isPathToPiece piece board target
+    where
+        chkPwnDisLeft = ((Tool.charToInt (col target)) - (Tool.charToInt (col piece))) == negate 1
+        chkPwnDisRight = ((Tool.charToInt (col target)) - (Tool.charToInt (col piece))) ==  1
 
-boardScore :: Board -> Int
-boardScore board = foldl (+) 0 (map (\x -> sco x)) board
+isPathToPiece :: PieceInfo -> Board -> PieceInfo -> Bool
+isPathToPiece source board target = checkSpaces source disX disY board target
+    where
+        disY = (Tool.charToInt $ col target) - (Tool.charToInt $ col source)
+        disX = (row target) - (row source)
+
+checkSpaces :: PieceInfo -> Int -> Int -> Board -> PieceInfo -> Bool
+checkSpaces source disX disY board target
+    | ((rowCheck && colCheck) && terminationCheck) = True
+    | otherwise = pieceAtCheck && (checkSpaces pieceAt (disX - (abs dX)) (disY - (abs dY)) board target)
+    where
+        terminationCheck =  (sid source == negate (sid target)) || typ target == Blank
+        rowCheck = (row source) + dX == row target
+        colCheck = (Tool.charToInt (col source)) + dY == Tool.charToInt (col target)
+        pieceAtCheck = typ pieceAt == Blank
+        pieceAt  = getPieceAtCoords ((row source) + dX) (Tool.charToInt (col source) + dY) board
+        dX = if (disX == 0) then 0 else (if (disX < 0) then negate 1 else 1)
+        dY = if (disY == 0) then 0 else (if (disY < 0) then negate 1 else 1)
+
+checkSide :: PieceInfo -> PieceInfo -> Bool
+checkSide source target = if (sid source == sid target) then False else True    
+
+findPossibleMove :: PieceInfo -> Board -> Board
+findPossibleMove piece board =  validMoves
+    where
+        validMoves = filter (\x -> (isValidMove piece board x)) piecesAtCoords
+        piecesAtCoords = [getPieceAtCoords (row currentPiece + fst m) (snd m + (Tool.charToInt $ col currentPiece)) board | m <-movesList]
+        movesList = possibleMoves $ typ currentPiece
+        currentPiece = piece
+
+getPiecesByType :: Int -> Board -> [PieceInfo]
+getPiecesByType side node = filter (\piece -> sid piece == side ) node
+
+--takes in potential moves and the board outputs the possible child states
+changeInState :: Board -> Board -> States
+changeInState [] _ = []
+changeInState (x:xs) board = [([x] ++ newBoard)] ++ (changeInState xs board)
+    where --remove the piece that will be replaced by x
+    newBoard = removeFromBoard board (row x) (Tool.charToInt (col x))
+
+removeFromBoard :: Board -> Int -> Int -> Board
+removeFromBoard [] _ _ = []
+removeFromBoard (p:ps) x y
+    | ((row p == x) && (Tool.charToInt (col p) == y)) = [] ++ removeFromBoard ps x y 
+    | otherwise = [p] ++ removeFromBoard ps x y 
+
+-- takes in a side and outputs all states
+findAllStates :: Int -> Board -> Board -> States
+findAllStates _ _ []  = []
+findAllStates side board (x:xs)
+   | (side == 1) = (changeInState (findPossibleMove x board) (Trace.trace (show newBoard) newBoard)) ++ (findAllStates side board xs)
+   | (side == negate 1) = (changeInState (findPossibleMove x board) newBoard) ++ (findAllStates side board xs)
+   | otherwise = []
+   where
+   newBoard = (filter (\piece -> x /= piece) board) ++ [newBlank]
+   newBlank = PieceInfo{row=row x, col=col x, sco=0, typ = Blank, sid =0, cap=False}
  
+-- takes pieces from a side and the side number
+findStatesScores ::Board -> Board -> Int -> [(Board, Int)]
+findStatesScores board selectedPieces side = zip (allStates) scoreMapping
+    where
+    scoreMapping = map (\state -> (nop state side)) allStates
+    allStates = findAllStates side board selectedPieces
 
+maximumState :: Ord a => [(t, a)] -> (t, a)
+maximumState []     = error "maximum of empty list"
+maximumState (x:xs) = maxTail x xs
+  where maxTail currentMax [] = currentMax
+        maxTail (m, n) (p:ps)
+          | n < (snd p) = maxTail p ps
+          | otherwise   = maxTail (m, n) ps
 
-	
+minimumState :: Ord a => [(t, a)] -> (t, a)
+minimumState []     = error "minimum of empty list"
+minimumState (x:xs) = minTail x xs
+  where minTail currentMin [] = currentMin
+        minTail (m, n) (p:ps)
+          | n > (snd p) = minTail p ps
+          | otherwise   = minTail (m, n) ps
+          
+--takes in side and returns score for best state
+findHeuristic ::Board -> Int -> (Board, Int)
+findHeuristic board side
+    | (side == 1) = maximumState ssTupleWhite
+    | (side == negate 1) = minimumState ssTupleBlack
+    | otherwise = error "Invalid state"
+    where
+        ssTupleWhite = findStatesScores board (getPiecesByType 1 board) 1
+        ssTupleBlack = findStatesScores board (getPiecesByType (negate 1) board) (negate 1)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+--HEURISTICS FOR STATES
+nop :: Board -> Int ->  Int
+nop current_board side 
+    | (side == 1) = (whites - blacks)
+    | (side == negate 1) = (blacks - whites)
+    | otherwise = 0
+    where 
+    blacks = length $ filter (\x -> sid x == negate 1) current_board
+    whites = length $ filter (\x -> sid x == 1) current_board
 
