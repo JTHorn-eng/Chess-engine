@@ -53,8 +53,13 @@ genBoardString (x:xs) board =
         newBoard = Tool.replaceAtIndex ((getPieceString x) ++ convertSideToString (sid x)) board index
         index = 2 * (((Tool.charToInt (col x)) ) + (row x - 1) * 8)
 
-displayStates :: States -> Int -> String
-displayStates states index = (displayBoard (genBoardString (states !! index) boardSingleton) cr_limit) 
+
+displayStates :: States -> IO ()
+displayStates [] = putStrLn ""
+displayStates (board:boards) = 
+    do
+        putStrLn (displayBoard (genBoardString (board) boardSingleton) cr_limit) 
+        displayStates boards
 
 getPieceString :: PieceInfo -> String
 getPieceString piece 
