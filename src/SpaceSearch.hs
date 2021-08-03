@@ -42,4 +42,4 @@ negamax node depth a b color
     foundNode = (Board.findHeuristic node color)
    
 beginSearch :: Int
-beginSearch = negamax (Board.init) (1) (negate 100000) (10000000) (negate 1)
+beginSearch = negamax (Board.init) (2) (negate 100000) (10000000) (negate 1)

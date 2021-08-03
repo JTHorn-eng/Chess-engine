@@ -37,6 +37,7 @@ init = result where
     pawns   = [PieceInfo {row=r, col=c, sco=1, typ=Pawn, sid=(if r== 2 then 1 else negate 1), cap=False} | c <- ['a'..'h'], r <- [2, 7]]
     blanks  = [PieceInfo {row=r, col=c, sco=0, typ=Blank, sid=0, cap=False} | c <- ['a'..'h'], r <- [3..6]]
 
+boardSingleton :: String
 boardSingleton = take 128 $ repeat '@'
 cr_limit = [0,17..128]
 
@@ -57,13 +58,13 @@ displayStates states index = (displayBoard (genBoardString (states !! index) boa
 
 getPieceString :: PieceInfo -> String
 getPieceString piece 
-    | (typeP == Blank) = "_"
-    | (typeP == Pawn) = "P"
+    | (typeP == Blank) =  "_"
+    | (typeP == Pawn) =   "P"
     | (typeP == Knight) = "N"
-    | (typeP == Rook) = "R"
+    | (typeP == Rook) =   "R"
     | (typeP == Bishop) = "B"
-    | (typeP == King) = "K"
-    | (typeP == Queen) = "Q"
+    | (typeP == King) =   "K"
+    | (typeP == Queen) =  "Q"
     where
         typeP = typ piece
 
@@ -75,6 +76,7 @@ convertStringToSide x = if x == 'W' then 1 else (if x == 'B' then negate 1 else 
 
 possibleMoves :: Piece -> Coords
 possibleMoves piece 
+    | ( piece == Blank) = error "Cannot move a blank"
     | ( piece == Pawn) = [(2,0), (1,0), (1, 1), (1, negate 1)]
     | ( piece == Knight) = [(x,y) | x <- [negate 1, 1], y <-[negate 3, 3]] ++ [(x,y) | x <- [negate 3, 3], y <-[negate 1, 1]]
     | ( piece == Bishop) = Tool.removeFromList ([(x,x) | x<-[negate 7..7]] ++ [(x,negate x) | x<-[negate 7..7]] ++ [(negate x, x) | x<-[negate 7..7]]) (0,0)
@@ -141,8 +143,9 @@ checkSide :: PieceInfo -> PieceInfo -> Bool
 checkSide source target = if (sid source == sid target) then False else True    
 
 findPossibleMove :: PieceInfo -> Board -> Board
-findPossibleMove piece board =  validMoves
+findPossibleMove piece board =  augmentPieces
     where
+        augmentPieces = map (\p -> PieceInfo{row=row p, col = col p, sco = sco piece, typ = typ piece, sid = sid piece, cap = cap piece}) validMoves
         validMoves = filter (\x -> (isValidMove piece board x)) piecesAtCoords
         piecesAtCoords = [getPieceAtCoords (row currentPiece + fst m) (snd m + (Tool.charToInt $ col currentPiece)) board | m <-movesList]
         movesList = possibleMoves $ typ currentPiece
@@ -154,7 +157,7 @@ getPiecesByType side node = filter (\piece -> sid piece == side ) node
 --takes in potential moves and the board outputs the possible child states
 changeInState :: Board -> Board -> States
 changeInState [] _ = []
-changeInState (x:xs) board = [([x] ++ newBoard)] ++ (changeInState xs board)
+changeInState (x:xs) board = [[x] ++ newBoard] ++ (changeInState xs board)
     where --remove the piece that will be replaced by x
     newBoard = removeFromBoard board (row x) (Tool.charToInt (col x))
 
@@ -168,11 +171,12 @@ removeFromBoard (p:ps) x y
 findAllStates :: Int -> Board -> Board -> States
 findAllStates _ _ []  = []
 findAllStates side board (x:xs)
-   | (side == 1) = (changeInState (findPossibleMove x board) (Trace.trace (show newBoard) newBoard)) ++ (findAllStates side board xs)
-   | (side == negate 1) = (changeInState (findPossibleMove x board) newBoard) ++ (findAllStates side board xs)
+   | (side == 1) = newBoard ++ (findAllStates side board xs)
+   | (side == negate 1) = newBoard ++ (findAllStates side board xs)
    | otherwise = []
    where
-   newBoard = (filter (\piece -> x /= piece) board) ++ [newBlank]
+   newBoard = (changeInState (findPossibleMove x board) removedOldPiece)
+   removedOldPiece = (filter (\piece -> x /= piece) board) ++ [newBlank]
    newBlank = PieceInfo{row=row x, col=col x, sco=0, typ = Blank, sid =0, cap=False}
  
 -- takes pieces from a side and the side number
