@@ -1,5 +1,9 @@
 module Main where
 
+import qualified SpaceSearch as Search
+import Board
+
+
 {- TODO
 
     -Implement display
@@ -9,23 +13,16 @@ module Main where
     -Testing
 -}
 
-boardStatus :: String
-boardStatus = "======="
 
-engineResponse :: String -> String
-engineResponse a = show a
-
-runSim :: IO ()
-runSim = do
-    putStrLn $ boardStatus 
-    putStrLn (">")
-    input <- getLine
-    if input /= "exit" then runSim else return ()
-    putStrLn $ engineResponse input
-
+main :: IO ()
 main = do
-    runSim
+    current <- currentBoard Board.init
+    
+
+currentBoard :: Board -> Board
+currentBoard board = fst (Search.beginSearch DEPTH board)
 
 
+DEPTH = 10
 
     
