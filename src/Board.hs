@@ -165,11 +165,17 @@ getPiecesByType side node = filter (\piece -> sid piece == side ) node
 
 --takes in potential moves and the board outputs the possible child states
 changeInState :: Game -> Board -> States
-changeInState ([], _) _ = []
-changeInState ((x:xs), _) board = [[x] ++ newBoard] ++ (changeInState xs board)
+changeInState ([], _) _ _ = []
+changeInState ((x:xs), capList) board
+    | (length board == length newBoard) = [(newBoard, capList)] ++ (changeInState xs board)
+    | (length board /= length newBoard) = [(newBoard, capList ++ [findCapturedPieces newBoard board])] ++ (changeInState xs board)
     where --remove the piece that will be replaced by x
-    
-    newBoard = removeFromBoard board (row x) (Tool.charToInt (col x))
+    newBoard = (removeFromBoard board (row x) (Tool.charToInt (col x))) ++ [x]
+
+findCapturedPieces :: Board -> Board -> PieceInfo
+findCapturedPieces newB (x:xs)
+    | ((x `elem` newB) == True) = findCapturedPieces newB xs
+    | ((x `elem` newB) == False) = x
 
 removeFromBoard :: Board -> Int -> Int -> Board
 removeFromBoard [] _ _ = []
@@ -185,10 +191,10 @@ findAllStates side game (x:xs)
    | (side == negate 1) = newBoard ++ (findAllStates side game xs)
    | otherwise = []
    where
-   newBoard = (changeInState (findPossibleMove x game) removedOldPiece)
-   removedOldPiece = (filter (\piece -> x /= piece) (fst game)) ++ [newBlank]
+   newBoard = changeInState (findPossibleMove x game) removedOldPiece (fst game)
+   removedOldPiece = (filter (\piece -> x /= piece)) ++ [newBlank]
    newBlank = PieceInfo{row=row x, col=col x, sco=0, typ = Blank, sid =0}
- 
+
 -- takes pieces from a side and the side number
 findStatesScores :: Game -> Board -> Int -> [(Board, Int)]
 findStatesScores game selectedPieces side = zip (allStates) scoreMapping
@@ -231,8 +237,5 @@ nop current_board side
     where 
     blacks = length $ filter (\x -> sid x == negate 1) current_board
     whites = length $ filter (\x -> sid x == 1) current_board
-
-initGame :: Game
-initGame = (initBoard, [])
 
 

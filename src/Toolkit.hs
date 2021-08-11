@@ -4,7 +4,6 @@ module Toolkit where
 
 import qualified Data.Char as C
 
-
 safeTail :: [a] -> [a]
 safeTail [] = []
 safeTail (_:xs) = xs
