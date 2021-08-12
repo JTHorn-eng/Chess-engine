@@ -54,10 +54,10 @@ genBoardString (x:xs) board =
 
 displayStates :: States -> IO ()
 displayStates [] = putStrLn ""
-displayStates (board:boards) = 
+displayStates (game:games) = 
     do
-        putStrLn (displayBoard (genBoardString board boardSingleton) cr_limit) 
-        displayStates boards
+        putStrLn (displayBoard (genBoardString (fst game) boardSingleton) cr_limit) 
+        displayStates games
 
 getPieceString :: PieceInfo -> String
 getPieceString piece 
@@ -110,14 +110,14 @@ findPieceInBoardHelper piece p =
 getPieceAtCoords :: Int -> Int -> Board -> PieceInfo
 getPieceAtCoords x y board
     | (x > 0 && x <= 8 && y >= 0 && y < 8 ) = (filter (\p -> ((row p) == x) && (Tool.charToInt (col p)) == y) board) !! 0
-    | otherwise = PieceInfo{row=0, col='a',sco=0,typ=Empty,sid=0,cap=False}
+    | otherwise = PieceInfo{row=0, col='a',sco=0,typ=Empty,sid=0}
 
-isValidMove :: PieceInfo ->  Board -> PieceInfo -> Bool
+isValidMove :: PieceInfo -> Board -> PieceInfo -> Bool
 isValidMove piece board target
     | (typ target == Empty) = False
     | (typ piece == Pawn) = checkPwnPath piece board target
     | (typ piece == Knight) = sid piece /= sid target
-    | otherwise = isPathToPiece piece (fst board) target
+    | otherwise = isPathToPiece piece board target
 
 checkPwnPath :: PieceInfo -> Board -> PieceInfo -> Bool
 checkPwnPath piece board target
@@ -164,13 +164,15 @@ getPiecesByType :: Int -> Board -> [PieceInfo]
 getPiecesByType side node = filter (\piece -> sid piece == side ) node
 
 --takes in potential moves and the board outputs the possible child states
-changeInState :: Game -> Board -> States
-changeInState ([], _) _ _ = []
-changeInState ((x:xs), capList) board
-    | (length board == length newBoard) = [(newBoard, capList)] ++ (changeInState xs board)
-    | (length board /= length newBoard) = [(newBoard, capList ++ [findCapturedPieces newBoard board])] ++ (changeInState xs board)
-    where --remove the piece that will be replaced by x
-    newBoard = (removeFromBoard board (row x) (Tool.charToInt (col x))) ++ [x]
+changeInState :: Game -> Board -> Board -> States
+changeInState _ [] _ = []
+changeInState game (x:xs) oldBoard
+    | (optl == nptl) = [(newBoard, snd game)] ++ (changeInState game xs oldBoard)
+    | (optl /= nptl) = [(newBoard, (snd game) ++ [findCapturedPieces newBoard oldBoard])] ++ (changeInState game xs oldBoard)
+    where 
+    optl = (length $ getPiecesByType 1 oldBoard) - (length $ getPiecesByType (negate 1) oldBoard) 
+    nptl = (length $ getPiecesByType 1 newBoard) - (length $ getPiecesByType (negate 1) newBoard)
+    newBoard = (removeFromBoard oldBoard (row x) (Tool.charToInt (col x))) ++ [x]
 
 findCapturedPieces :: Board -> Board -> PieceInfo
 findCapturedPieces newB (x:xs)
@@ -191,15 +193,16 @@ findAllStates side game (x:xs)
    | (side == negate 1) = newBoard ++ (findAllStates side game xs)
    | otherwise = []
    where
-   newBoard = changeInState (findPossibleMove x game) removedOldPiece (fst game)
-   removedOldPiece = (filter (\piece -> x /= piece)) ++ [newBlank]
+   newBoard = changeInState game (findPossibleMove x game) removedOldPiece
+   removedOldPiece = (filter (\piece -> x /= piece) (fst game)) ++ [newBlank]
    newBlank = PieceInfo{row=row x, col=col x, sco=0, typ = Blank, sid =0}
 
 -- takes pieces from a side and the side number
 findStatesScores :: Game -> Board -> Int -> [(Board, Int)]
-findStatesScores game selectedPieces side = zip (allStates) scoreMapping
+findStatesScores game selectedPieces side = zip (allStatesBoards) scoreMapping
     where
-    scoreMapping = map (\state -> (nop state side)) allStates
+    allStatesBoards = map (\state -> fst state) allStates
+    scoreMapping = map (\state -> (nop (fst state) side)) allStates
     allStates = findAllStates side game selectedPieces
 
 maximumState :: Ord a => [(t, a)] -> (t, a)
@@ -219,7 +222,7 @@ minimumState (x:xs) = minTail x xs
           | otherwise   = minTail (m, n) ps
           
 --takes in side and returns score for best state
-findHeuristic :: Game -> Int -> (Game, Int)
+findHeuristic :: Game -> Int -> (Board, Int)
 findHeuristic game side
     | (side == 1) = maximumState ssTupleWhite
     | (side == negate 1) = minimumState ssTupleBlack
