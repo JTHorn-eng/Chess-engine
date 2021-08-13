@@ -32,3 +32,9 @@ removeFromList (x:xs) elem
     | (x == elem) = [] ++ removeFromList xs elem
     | otherwise = [x] ++ removeFromList xs elem
   
+-- if element is not in list y then add to output list
+invCompareSets :: (Eq a) => [a] -> [a] -> [a]
+invCompareSets [] _ = []
+compareSets (x:xs) y 
+    | (x `elem` y) = invCompareSets xs y
+    | otherwise = [x] ++ invCompareSets xs y 

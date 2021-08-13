@@ -2,6 +2,7 @@ module Main where
 
 import qualified SpaceSearch as Search
 import Board
+import Control.Monad
 
 
 {- TODO

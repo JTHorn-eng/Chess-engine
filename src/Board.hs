@@ -36,6 +36,9 @@ initBoard = result where
     pawns   = [PieceInfo {row=r, col=c, sco=1, typ=Pawn, sid=(if r== 2 then 1 else negate 1)} | c <- ['a'..'h'], r <- [2, 7]]
     blanks  = [PieceInfo {row=r, col=c, sco=0, typ=Blank, sid=0} | c <- ['a'..'h'], r <- [3..6]]
 
+initGame :: Game
+initGame = (initBoard, [])
+
 boardSingleton :: String
 boardSingleton = take 128 $ repeat '@'
 cr_limit = [0,17..128]
@@ -154,13 +157,9 @@ findPossibleMove :: PieceInfo -> Game -> Board
 findPossibleMove piece game =  augmentPieces
     where
         augmentPieces = (\p -> PieceInfo{row=row p, col = col p, sco = sco piece, typ = typ piece, sid = sid piece}) <$> validMoves
-        validMoves = filter (\x -> (isValidMove piece (fst game) x)) piecesAtCoords
-        piecesAtCoords = [getPieceAtCoords (row piece + fst m) (snd m + (Tool.charToInt $ col piece)) (fst game) | m <-movesList]
-        movesList
-            | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = ((possibleMoves . typ) piece) ++ [(2, 0)]
-            | otherwise = (possibleMoves . typ) piece
+        validMoves = findValidMoves game piece
 
-getPiecesByType :: Int -> Board -> [PieceInfo]
+getPiecesByType :: Int -> Board -> Board
 getPiecesByType side node = filter (\piece -> sid piece == side ) node
 
 --takes in potential moves and the board outputs the possible child states
@@ -206,8 +205,8 @@ findStatesScores game selectedPieces side = zip (allStatesBoards) scoreMapping
     allStates = findAllStates side game selectedPieces
 
 maximumState :: Ord a => [(t, a)] -> (t, a)
-maximumState []     = error "maximum of empty list"
-maximumState (x:xs) = maxTail x xs
+maximumState []      = error "maximum of empty list"
+maximumState (x:xs)  = maxTail x xs
   where maxTail currentMax [] = currentMax
         maxTail (m, n) (p:ps)
           | n < (snd p) = maxTail p ps
@@ -222,14 +221,48 @@ minimumState (x:xs) = minTail x xs
           | otherwise   = minTail (m, n) ps
           
 --takes in side and returns score for best state
-findHeuristic :: Game -> Int -> (Board, Int)
+findHeuristic :: Game -> Int -> (Game, Int)
 findHeuristic game side
-    | (side == 1) = maximumState ssTupleWhite
-    | (side == negate 1) = minimumState ssTupleBlack
+    | (side == 1) = ((fst maxWhite, snd game), snd maxWhite)
+    | (side == negate 1) = ((fst maxBlack, snd game), snd maxBlack)
     | otherwise = error "Invalid state"
     where
+        maxWhite = maximumState ssTupleWhite
+        maxBlack = minimumState ssTupleBlack
         ssTupleWhite = findStatesScores game (getPiecesByType 1 (fst game)) 1
         ssTupleBlack = findStatesScores game (getPiecesByType (negate 1) (fst game)) (negate 1)
+
+--find all the spaces for a side that a piece can move to
+moveableSpaces :: Int -> Game -> Board
+moveableSpaces side game = possiblesForType
+    where
+    possiblesForType = foldl (++) [] (map (\p -> findValidMoves game p) pieces)
+    pieces = getPiecesByType side (fst game)
+
+findValidMoves :: Game -> PieceInfo -> Board
+findValidMoves game piece = validMoves
+    validMoves = filter (\x -> (isValidMove piece (fst game) x)) piecesAtCoords
+    piecesAtCoords = [getPieceAtCoords (row piece + fst m) (snd m + (Tool.charToInt $ col piece)) (fst game) | m <-movesList]
+    movesList
+        | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = ((possibleMoves . typ) piece) ++ [(2, 0)]
+        | otherwise = (possibleMoves . typ) piece
+
+isCheck :: Game -> Int -> Bool
+isCheck game side = if (king `elem` moves) then True else False
+    where 
+        moves = moveableSpaces (negate side) game
+        king = take 1 $ filter (\p -> (sid p == side) && (typ p == King)) (fst game)
+
+checkmate :: Game -> (Bool, Int)
+checkmate game
+    | ((bKingMoves == []) && (isCheck game 1)) = (True, negate 1)
+    | ((wKingMoves == [] && (isCheck game (negate 1))) = (True, 1)
+    | otherwise = (False, 0)
+    where
+        bKingMoves = Tool.invCompareSets (findValidMoves game bKing) (moveableSpaces 1 game)
+        wKingMoves = Tool.invCompareSets (findValidMoves game wKing) (moveableSpaces (negate 1) game)
+        wKing = take 1 $ filter (\p -> (sid p == 1) && (typ p == King)) (fst game)
+        bKing = take 1 $ filter (\p -> (sid p == negate 1 ) && (typ p == King)) (fst game)
 
 --HEURISTICS FOR STATES
 nop :: Board -> Int ->  Int
@@ -240,5 +273,4 @@ nop current_board side
     where 
     blacks = length $ filter (\x -> sid x == negate 1) current_board
     whites = length $ filter (\x -> sid x == 1) current_board
-
 
