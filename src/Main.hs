@@ -2,7 +2,7 @@ module Main where
 
 import qualified SpaceSearch as Search
 import Board
-import Control.Monad
+import Control.Monad as Control
 
 
 {- TODO
@@ -14,16 +14,17 @@ import Control.Monad
     -Testing
 -}
 
+depth = 5
 
 main :: IO ()
 main = do
-    current <- currentBoard Board.init
-    
+    game <- return initGame
 
-currentBoard :: Board -> Board
-currentBoard board = fst (Search.beginSearch DEPTH board)
+    foundBoard <- return (fst (Search.beginSearch depth game))
+    Board.displayStates [foundBoard]
 
 
-DEPTH = 10
+
+
 
     

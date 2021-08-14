@@ -8,7 +8,6 @@ data Piece = Empty | Blank | Pawn | Knight | Queen | King | Bishop | Rook derivi
 -- row, column, score, type, side (1 - White, -1 - Black, 0 - Neutral)
 data PieceInfo = PieceInfo {row :: Int, col :: Char, sco :: Int, typ :: Piece, sid :: Int} deriving (Show, Eq)
 
-
 type Game = ([PieceInfo], [PieceInfo]) -- (Board, captured pieces)
 type Board = [PieceInfo]
 type States = [Game]
@@ -38,7 +37,7 @@ initBoard = result where
 
 initGame :: Game
 initGame = (initBoard, [])
-
+ 
 boardSingleton :: String
 boardSingleton = take 128 $ repeat '@'
 cr_limit = [0,17..128]
@@ -80,10 +79,10 @@ sideToString x = if x == 1 then "W" else (if x == negate 1 then "B" else "_")
 stringToSide :: Char -> Int
 stringToSide x = if x == 'W' then 1 else (if x == 'B' then negate 1 else 0)
 
-possibleMoves :: Piece -> Coords
-possibleMoves piece 
+possibleMoves :: Piece -> Int -> Coords
+possibleMoves piece side
     | ( piece == Blank) = error "Cannot move a blank"
-    | ( piece == Pawn) = [(1,0), (1, 1), (1, negate 1)]
+    | ( piece == Pawn) = [(1 * side,0), (1 * side, 1), (1 * side, negate 1)]
     | ( piece == Knight) = [(x,y) | x <- [negate 1, 1], y <-[negate 2, 2]] ++ [(x,y) | x <- [negate 2, 2], y <-[negate 1, 1]]
     | ( piece == Bishop) = Tool.removeFromList ([(x,x) | x<-[negate 7..7]] ++ [(x,negate x) | x<-[negate 7..7]] ++ [(negate x, x) | x<-[negate 7..7]]) (0,0)
     | ( piece == Rook) = Tool.removeFromList ([(x,0)|x<-[negate 7..7]] ++ [(0,y)|y<-[negate 7..7]]) (0,0)
@@ -215,16 +214,17 @@ maximumState (x:xs)  = maxTail x xs
 minimumState :: Ord a => [(t, a)] -> (t, a)
 minimumState []     = error "minimum of empty list"
 minimumState (x:xs) = minTail x xs
-  where minTail currentMin [] = currentMin
-        minTail (m, n) (p:ps)
-          | n > (snd p) = minTail p ps
-          | otherwise   = minTail (m, n) ps
+  where
+  minTail currentMin [] currentMin
+  minTail (m, n) (p:ps)
+      | n > (snd p) = minTail p ps
+      | otherwise   = minTail (m, n) ps
           
 --takes in side and returns score for best state
-findHeuristic :: Game -> Int -> (Game, Int)
+findHeuristic :: Game -> Int -> Int
 findHeuristic game side
-    | (side == 1) = ((fst maxWhite, snd game), snd maxWhite)
-    | (side == negate 1) = ((fst maxBlack, snd game), snd maxBlack)
+    | (side == 1) = snd maxWhite
+    | (side == negate 1) = snd maxBlack
     | otherwise = error "Invalid state"
     where
         maxWhite = maximumState ssTupleWhite
@@ -241,28 +241,29 @@ moveableSpaces side game = possiblesForType
 
 findValidMoves :: Game -> PieceInfo -> Board
 findValidMoves game piece = validMoves
+    where
     validMoves = filter (\x -> (isValidMove piece (fst game) x)) piecesAtCoords
     piecesAtCoords = [getPieceAtCoords (row piece + fst m) (snd m + (Tool.charToInt $ col piece)) (fst game) | m <-movesList]
     movesList
-        | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = ((possibleMoves . typ) piece) ++ [(2, 0)]
-        | otherwise = (possibleMoves . typ) piece
+        | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = (((possibleMoves (sid piece)) . typ) piece) ++ [(2, 0)]
+        | otherwise = ((possibleMoves (sid piece)) . typ) piece
 
 isCheck :: Game -> Int -> Bool
 isCheck game side = if (king `elem` moves) then True else False
     where 
         moves = moveableSpaces (negate side) game
-        king = take 1 $ filter (\p -> (sid p == side) && (typ p == King)) (fst game)
+        king = (filter (\p -> (sid p == side) && (typ p == King)) (fst game)) !! 0
 
 checkmate :: Game -> (Bool, Int)
 checkmate game
     | ((bKingMoves == []) && (isCheck game 1)) = (True, negate 1)
-    | ((wKingMoves == [] && (isCheck game (negate 1))) = (True, 1)
+    | ((wKingMoves == []) && (isCheck game (negate 1))) = (True, 1)
     | otherwise = (False, 0)
     where
         bKingMoves = Tool.invCompareSets (findValidMoves game bKing) (moveableSpaces 1 game)
         wKingMoves = Tool.invCompareSets (findValidMoves game wKing) (moveableSpaces (negate 1) game)
-        wKing = take 1 $ filter (\p -> (sid p == 1) && (typ p == King)) (fst game)
-        bKing = take 1 $ filter (\p -> (sid p == negate 1 ) && (typ p == King)) (fst game)
+        wKing = (filter (\p -> (sid p == 1) && (typ p == King)) (fst game)) !! 0
+        bKing = (filter (\p -> (sid p == negate 1 ) && (typ p == King)) (fst game)) !! 0
 
 --HEURISTICS FOR STATES
 nop :: Board -> Int ->  Int

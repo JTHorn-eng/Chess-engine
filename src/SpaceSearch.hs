@@ -3,15 +3,28 @@ module SpaceSearch where
 import Board
 import qualified Debug.Trace as D
 
+--for now the computer plays as black
+
+dC = 5
+
 --node, depth, alpha, beta, color
-negamax :: Game -> Int -> Int -> Int -> Int -> (Game, Int)
+negamax :: Game -> Int -> Int -> Int -> Int -> Int
 negamax game depth a b color
-    | (depth == 0) = (fst foundNode, snd foundNode * color)
-    | otherwise = negamax (fst foundNode) (depth - 1) (negate b) (negate a) (negate color)
+    | (depth == 0 && a >= b) = nop * color
+    | otherwise = heursiticVal
     where
-    minInt = minBound :: Int
-    foundNode = Board.findHeuristic game color
-   
-beginSearch :: Int -> Game -> (Game, Int)
-beginSearch depth game = negamax game depth (negate 100000) 10000000 (negate 1)
+    heuristicVal :: Int
+    heuristicVal = maximum (map lamb childNodes)
+    lamb = \child -> findValue value child depth a b color 
+    value = minBound :: int
+    childNodes = findAllStates (negate 1) game blackPieces
+    blackPieces = (getPiecesByType (negate 1) (fst game))
+
+--child node, depth, alpha, beta, color
+findValue :: Int -> States -> Int -> Int -> Int -> Int -> Int
+findValue val child depth a b color =
+    maximum (val, negate negMax)
+    where
+    negMax = negate (negamax child (depth - 1) (negate b) (negate alpha) (negate color))
+    alpha = maximum (a, val)
 

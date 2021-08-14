@@ -1,8 +1,7 @@
-
 module Toolkit where
 
-
 import qualified Data.Char as C
+
 
 safeTail :: [a] -> [a]
 safeTail [] = []
@@ -38,3 +37,5 @@ invCompareSets [] _ = []
 compareSets (x:xs) y 
     | (x `elem` y) = invCompareSets xs y
     | otherwise = [x] ++ invCompareSets xs y 
+
+
