@@ -214,11 +214,10 @@ maximumState (x:xs)  = maxTail x xs
 minimumState :: Ord a => [(t, a)] -> (t, a)
 minimumState []     = error "minimum of empty list"
 minimumState (x:xs) = minTail x xs
-  where
-  minTail currentMin [] currentMin
-  minTail (m, n) (p:ps)
-      | n > (snd p) = minTail p ps
-      | otherwise   = minTail (m, n) ps
+  where minTail currentMin [] = currentMin
+        minTail (m, n) (p:ps)
+          | n > (snd p) = minTail p ps
+          | otherwise   = minTail (m, n) ps
           
 --takes in side and returns score for best state
 findHeuristic :: Game -> Int -> Int
@@ -245,8 +244,8 @@ findValidMoves game piece = validMoves
     validMoves = filter (\x -> (isValidMove piece (fst game) x)) piecesAtCoords
     piecesAtCoords = [getPieceAtCoords (row piece + fst m) (snd m + (Tool.charToInt $ col piece)) (fst game) | m <-movesList]
     movesList
-        | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = (((possibleMoves (sid piece)) . typ) piece) ++ [(2, 0)]
-        | otherwise = ((possibleMoves (sid piece)) . typ) piece
+        | (typ piece == Pawn && (row piece == 2 || row piece == 7)) = (possibleMoves (typ piece) (sid piece)) ++ [(2, 0)]
+        | otherwise = possibleMoves (typ piece) (sid piece)
 
 isCheck :: Game -> Int -> Bool
 isCheck game side = if (king `elem` moves) then True else False

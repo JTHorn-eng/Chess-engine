@@ -10,18 +10,18 @@ dC = 5
 --node, depth, alpha, beta, color
 negamax :: Game -> Int -> Int -> Int -> Int -> Int
 negamax game depth a b color
-    | (depth == 0 && a >= b) = nop * color
-    | otherwise = heursiticVal
+    | (depth == 0 && a >= b) = (nop (fst game) color)
+    | otherwise = heuristicVal
     where
     heuristicVal :: Int
     heuristicVal = maximum (map lamb childNodes)
     lamb = \child -> findValue value child depth a b color 
-    value = minBound :: int
+    value = minBound :: Int
     childNodes = findAllStates (negate 1) game blackPieces
     blackPieces = (getPiecesByType (negate 1) (fst game))
 
 --child node, depth, alpha, beta, color
-findValue :: Int -> States -> Int -> Int -> Int -> Int -> Int
+findValue :: Int -> Game -> Int -> Int -> Int -> Int -> Int
 findValue val child depth a b color =
     maximum (val, negate negMax)
     where
