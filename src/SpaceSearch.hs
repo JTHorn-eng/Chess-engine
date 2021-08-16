@@ -2,6 +2,7 @@ module SpaceSearch where
 
 import Board
 import qualified Debug.Trace as D
+import Toolkit
 
 --for now the computer plays as black
 
@@ -10,7 +11,7 @@ dC = 5
 --node, depth, alpha, beta, color
 negamax :: Game -> Int -> Int -> Int -> Int -> Int
 negamax game depth a b color
-    | (depth == 0 && a >= b) = (nop (fst game) color)
+    | (depth == 0 && a >= b) = (heuristicScore game color)
     | otherwise = heuristicVal
     where
     heuristicVal :: Int
@@ -28,3 +29,8 @@ findValue val child depth a b color =
     negMax = negate (negamax child (depth - 1) (negate b) (negate alpha) (negate color))
     alpha = maximum (a, val)
 
+findBestMove :: States -> Game
+findBestMove states = fst $ Toolkit.maximumState tuples
+    where
+    tuples = zip states scores
+    scores = map (\g -> negamax g dC (minBound :: Int) (minBound :: Int) (negate 1)) states

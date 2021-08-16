@@ -11,7 +11,7 @@ import Control.Monad as Control
     -Write heuristics for minimax
     -Write minimax
     -Optimisations
-    -Testing
+    -Testin
 -}
 
 depth = 5
@@ -19,9 +19,10 @@ depth = 5
 main :: IO ()
 main = do
     game <- return initGame
+    computerMove <- return $ Search.findBestMove [game]
+    putStrLn computerMove
+    --Board.displayStates [foundBoard]
 
-    foundBoard <- return (fst (Search.beginSearch depth game))
-    Board.displayStates [foundBoard]
 
 
 

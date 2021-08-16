@@ -152,8 +152,8 @@ checkSpaces source disX disY board target
 checkSide :: PieceInfo -> PieceInfo -> Bool
 checkSide source target = if (sid source == sid target) then False else True    
 
-findPossibleMove :: PieceInfo -> Game -> Board
-findPossibleMove piece game =  augmentPieces
+findPossibleMoves :: PieceInfo -> Game -> Board
+findPossibleMoves piece game =  augmentPieces
     where
         augmentPieces = (\p -> PieceInfo{row=row p, col = col p, sco = sco piece, typ = typ piece, sid = sid piece}) <$> validMoves
         validMoves = findValidMoves game piece
@@ -191,45 +191,10 @@ findAllStates side game (x:xs)
    | (side == negate 1) = newBoard ++ (findAllStates side game xs)
    | otherwise = []
    where
-   newBoard = changeInState game (findPossibleMove x game) removedOldPiece
+   newBoard = changeInState game (findPossibleMoves x game) removedOldPiece
    removedOldPiece = (filter (\piece -> x /= piece) (fst game)) ++ [newBlank]
    newBlank = PieceInfo{row=row x, col=col x, sco=0, typ = Blank, sid =0}
 
--- takes pieces from a side and the side number
-findStatesScores :: Game -> Board -> Int -> [(Board, Int)]
-findStatesScores game selectedPieces side = zip (allStatesBoards) scoreMapping
-    where
-    allStatesBoards = map (\state -> fst state) allStates
-    scoreMapping = map (\state -> (nop (fst state) side)) allStates
-    allStates = findAllStates side game selectedPieces
-
-maximumState :: Ord a => [(t, a)] -> (t, a)
-maximumState []      = error "maximum of empty list"
-maximumState (x:xs)  = maxTail x xs
-  where maxTail currentMax [] = currentMax
-        maxTail (m, n) (p:ps)
-          | n < (snd p) = maxTail p ps
-          | otherwise   = maxTail (m, n) ps
-
-minimumState :: Ord a => [(t, a)] -> (t, a)
-minimumState []     = error "minimum of empty list"
-minimumState (x:xs) = minTail x xs
-  where minTail currentMin [] = currentMin
-        minTail (m, n) (p:ps)
-          | n > (snd p) = minTail p ps
-          | otherwise   = minTail (m, n) ps
-          
---takes in side and returns score for best state
-findHeuristic :: Game -> Int -> Int
-findHeuristic game side
-    | (side == 1) = snd maxWhite
-    | (side == negate 1) = snd maxBlack
-    | otherwise = error "Invalid state"
-    where
-        maxWhite = maximumState ssTupleWhite
-        maxBlack = minimumState ssTupleBlack
-        ssTupleWhite = findStatesScores game (getPiecesByType 1 (fst game)) 1
-        ssTupleBlack = findStatesScores game (getPiecesByType (negate 1) (fst game)) (negate 1)
 
 --find all the spaces for a side that a piece can move to
 moveableSpaces :: Int -> Game -> Board
@@ -265,12 +230,40 @@ checkmate game
         bKing = (filter (\p -> (sid p == negate 1 ) && (typ p == King)) (fst game)) !! 0
 
 --HEURISTICS FOR STATES
-nop :: Board -> Int ->  Int
-nop current_board side 
+--Takes in a game state and side, outputs score of game state
+heuristicScore :: Game -> Int -> Int
+heuristicScore game side = s0 - s1 + s2 + s3
+    where
+    s0 = posession (fst game) side
+    s1 = threats game side -- more threats decrease score
+    s2 = mobility game side
+    s3 = pieceProtection game side
+
+posession :: Board -> Int ->  Int
+posession current_board side 
     | (side == 1) = (whites - blacks)
     | (side == negate 1) = (blacks - whites)
     | otherwise = 0
     where 
     blacks = length $ filter (\x -> sid x == negate 1) current_board
     whites = length $ filter (\x -> sid x == 1) current_board
+
+threats :: Game -> Int -> Int
+threats game side = length capturablePieces
+    where
+    capturablePieces = Tool.compareSets (getPiecesByType side (fst game)) (foldl (++) [] pmfs)
+    pmfs = map (\p -> findPossibleMoves p game) (getPiecesByType (negate side) (fst game))
+
+mobility :: Game -> Int -> Int
+mobility game side = score
+    where
+    score = length (foldl (++) [] pmfs)
+    pmfs = map (\p -> findPossibleMoves p game) (getPiecesByType side (fst game))
+
+pieceProtection :: Game -> Int -> Int
+pieceProtection game side = length protected
+    where
+    protected = Tool.compareSets (getPiecesByType side (fst game)) (foldl (++) [] pmfs)
+    pmfs = map (\p -> findPossibleMoves p game) (getPiecesByType side (fst game))
+
 

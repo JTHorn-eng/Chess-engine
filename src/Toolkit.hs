@@ -34,8 +34,28 @@ removeFromList (x:xs) elem
 -- if element is not in list y then add to output list
 invCompareSets :: (Eq a) => [a] -> [a] -> [a]
 invCompareSets [] _ = []
-compareSets (x:xs) y 
+invCompareSets (x:xs) y 
     | (x `elem` y) = invCompareSets xs y
     | otherwise = [x] ++ invCompareSets xs y 
 
+compareSets :: (Eq a) => [a] -> [a] -> [a]
+compareSets [] _ = []
+compareSets (x:xs) y 
+    | (x `elem` y) = [x] ++ compareSets xs y
+    | otherwise = compareSets xs y 
 
+maximumState :: Ord a => [(t, a)] -> (t, a)
+maximumState []      = error "maximum of empty list"
+maximumState (x:xs)  = maxTail x xs
+  where maxTail currentMax [] = currentMax
+        maxTail (m, n) (p:ps)
+          | n < (snd p) = maxTail p ps
+          | otherwise   = maxTail (m, n) ps
+
+minimumState :: Ord a => [(t, a)] -> (t, a)
+minimumState []     = error "minimum of empty list"
+minimumState (x:xs) = minTail x xs
+  where minTail currentMin [] = currentMin
+        minTail (m, n) (p:ps)
+          | n > (snd p) = minTail p ps
+          | otherwise   = minTail (m, n) ps
